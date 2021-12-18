@@ -161,6 +161,7 @@ type
     function getBoolean( NameField : String ) : Boolean; virtual;
     function getDateTime( NameField : String ) : TDateTime; virtual;
     function getBlob( NameField : String ) : TMemoryStream; virtual;
+    function getString( NameField : String ) : String; overload;
     //
     function isEmpty( NameField : String ) : Boolean; virtual;
 
@@ -1349,11 +1350,6 @@ begin
   Result := Self.FDataSet.FieldByName(NameField).AsInteger;
 end;
 
-function TSQLQuery.getWideString(NameField: String): String;
-begin
-  Result := Trim(Self.FDataSet.FieldByName(NameField).AsString);
-end;
-
 function TSQLQuery.FieldBlob(FieldName: String; FieldBlob: TMemoryStream): TSQLQuery;
 var
   I : Integer;
@@ -1432,22 +1428,39 @@ begin
   Result := Self.FDataSet.FieldByName(NameField).AsLargeInt;
 end;
 
+function TSQLQuery.getString(NameField: String): String;
+begin
+  Result := Trim(Self.FDataSet.FieldByName(NameField).AsString);
+end;
+
+function TSQLQuery.getWideString(NameField: String): String;
+begin
+  Result := Trim(Self.FDataSet.FieldByName(NameField).AsString);
+end;
+
 function TSQLQuery.getBlob(NameField: String): TMemoryStream;
 var
   FieldStream : TStream;
 begin
-  try
-    FieldStream := Self.FDataSet.CreateBlobStream( Self.FDataSet.FieldByName( NameField ), bmRead );
-    Result := TMemoryStream.Create;
-    Result.LoadFromStream( FieldStream );
-  finally
-    FreeAndNil( FieldStream );
-  end;
+  if not Self.FDataSet.FieldByName( NameField ).IsNull then
+  begin
+    try
+      FieldStream := Self.FDataSet.CreateBlobStream( Self.FDataSet.FieldByName( NameField ), bmRead );
+      Result := TMemoryStream.Create;
+      Result.LoadFromStream( FieldStream );
+    finally
+      FreeAndNil( FieldStream );
+    end;
+  end
+  else Result := Nil;
 end;
 
 function TSQLQuery.getBoolean(NameField: String): Boolean;
 begin
-  Result := Self.FDataSet.FieldByName(NameField).AsBoolean;
+  if SGDBType = dbMySQL then
+    Result := (Self.FDataSet.FieldByName(NameField).AsInteger = 1)
+  else
+    Result := Self.FDataSet.FieldByName(NameField).AsBoolean;
 end;
 
 function TSQLQuery.getDateTime(NameField: String): TDateTime;
